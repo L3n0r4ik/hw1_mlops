@@ -2,20 +2,15 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Создание директории для логов
-RUN mkdir -p /app/logs && \
-    touch /app/logs/service.log && \
-    chmod -R 777 /app/logs  # Права на запись для всех пользователей
+RUN apt-get update && apt-get install -y unzip && rm -rf /var/lib/apt/lists/*
 
-# Установка зависимостей
+RUN mkdir -p /app/output /app/logs /app/models
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копирование исходного кода
 COPY . .
 
-# Точки монтирования
-VOLUME /app/input
 VOLUME /app/output
 
 CMD ["python", "./app/app.py"]

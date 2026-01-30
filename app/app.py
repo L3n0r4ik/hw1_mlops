@@ -6,6 +6,7 @@ import logging
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from datetime import datetime
+import subprocess
 
 sys.path.append(os.path.abspath('./src'))
 from preprocessing import load_train_data, run_preproc
@@ -21,12 +22,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
 class ProcessingService:
     def __init__(self):
         logger.info('Initializing ProcessingService...')
-        self.input_dir = '/app/input'
-        self.output_dir = '/app/output'
+        self.input_file = "/app/input/test.csv"
+        self.output_dir = "/app/output"
         self.train = load_train_data()
         logger.info('Service initialized')
 
@@ -41,9 +41,9 @@ class ProcessingService:
             logger.info('Making prediction')
             submission = make_pred(processed_df, file_path)
             
-            logger.info('Prepraring submission file')
+            logger.info('Preparing submission file')
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_filename = f"predictions_{timestamp}_{os.path.basename(file_path)}"
+            output_filename = f"predictions_{timestamp}.csv"
             submission.to_csv(os.path.join(self.output_dir, output_filename), index=False)
             logger.info('Predictions saved to: %s', output_filename)
 
@@ -51,27 +51,14 @@ class ProcessingService:
             logger.error('Error processing file %s: %s', file_path, e, exc_info=True)
             return
 
-
-class FileHandler(FileSystemEventHandler):
-    def __init__(self, service):
-        self.service = service
-
-    def on_created(self, event):
-        if not event.is_directory and event.src_path.endswith(".csv"):
-            logger.debug('New file detected: %s', event.src_path)
-            self.service.process_single_file(event.src_path)
-
 if __name__ == "__main__":
     logger.info('Starting ML scoring service...')
+    
+    import download_input
+    download_input.download_file_from_gdrive(
+        download_input.GDRIVE_FILE_ID, 
+        download_input.OUTPUT_PATH
+    )
+
     service = ProcessingService()
-    observer = Observer()
-    observer.schedule(FileHandler(service), path=service.input_dir, recursive=False)
-    observer.start()
-    logger.info('File observer started')
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        logger.info('Service stopped by user')
-        observer.stop()
-    observer.join()
+    service.process_single_file(service.input_file)

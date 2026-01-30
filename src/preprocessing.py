@@ -1,9 +1,7 @@
-# Import standard libraries
 import pandas as pd
 import numpy as np
 import logging
 
-# Import extra modules
 from geopy.distance import great_circle
 from sklearn.impute import SimpleImputer 
 
@@ -29,7 +27,6 @@ def cat_encode(train, input_df, col):
     new_col = col + '_cat'
     mapping = train[[col, new_col]].drop_duplicates()
     
-    # Merge to initial dataset
     input_df = input_df.merge(mapping, how='left', on=col).drop(columns=col)
     
     return input_df
@@ -48,27 +45,22 @@ def add_distance_features(df):
     return df.drop(columns=['lat', 'lon', 'merchant_lat', 'merchant_lon'])
 
 
-# Calculate means for encoding at docker container start
 def load_train_data():
 
     logger.info('Loading training data...')
 
-    # Define column types
     target_col = 'target'
     categorical_cols = ['gender', 'merch', 'cat_id', 'one_city', 'us_state', 'jobs']
     n_cats = 50
 
-    # Import Train dataset
     train = pd.read_csv('./train_data/train.csv').drop(columns=['name_1', 'name_2', 'street', 'post_code'])
     logger.info('Raw train data imported. Shape: %s', train.shape)
 
-    # Add some simple time features
     train = add_time_features(train)
 
     for col in categorical_cols:
         new_col = col + '_cat'
 
-        # Get table of categories
         temp_df = train\
             .groupby(col, dropna=False)[[target_col]]\
             .count()\
@@ -81,7 +73,6 @@ def load_train_data():
 
         train = train.merge(temp_df[[col, new_col]], how='left', on=col)
     
-    # Calculate distance between a client and a merchant
     train = add_distance_features(train)
 
     logger.info('Train data processed. Shape: %s', train.shape)
