@@ -5,14 +5,12 @@ from catboost import CatBoostClassifier
 from preprocessing import preprocess
 
 logger = logging.getLogger(__name__)
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, "models", "catboost_model.cbm")
 
 
 def load_model(model_path: str):
     model = CatBoostClassifier()
-    model.load_model(MODEL_PATH)
-    logger.info("Model loaded from %s", MODEL_PATH)
+    model.load_model(model_path)
+    logger.info("Model loaded from %s", model_path)
     return model
 
 
@@ -21,8 +19,8 @@ def make_pred(path_to_file: str, model_path: str) -> pd.DataFrame:
     raw_df = pd.read_csv(path_to_file, sep=",")
     processed_df = preprocess(raw_df)
 
-    logger.info("Path to model: %s", MODEL_PATH)
-    model = load_model(MODEL_PATH)
+    logger.info("Path to model: %s", model_path)
+    model = load_model(model_path)
 
     preds = model.predict_proba(processed_df)[:, 1]
 

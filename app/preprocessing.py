@@ -17,11 +17,9 @@ def preprocess(df):
     categorical_features = ['merch', 'cat_id', 'gender', 'us_state', 'one_city']
     
     df['distance'] = np.sqrt(
-        (df['lat'] - df['merchant_lat'])**2 + 
-        (df['lon'] - df['merchant_lon'])**2
+        (df['lat'] - df['merchant_lat'])**2 + (df['lon'] - df['merchant_lon'])**2
     )
     
-
     numeric_cols = df.select_dtypes(include=[np.number]).columns
     for col in numeric_cols:
         if df[col].isnull().any():
