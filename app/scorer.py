@@ -3,6 +3,7 @@ import logging
 import os
 from catboost import CatBoostClassifier
 from preprocessing import preprocess
+from artifacts import save_feature_importances, save_prediction_distribution
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,17 @@ def make_pred(path_to_file: str, model_path: str) -> pd.DataFrame:
         "index": raw_df.index,
         "prediction": preds
     })
+
+    save_feature_importances(
+        model=model,
+        feature_names=processed_df.columns.tolist(),
+        output_path="/app/output/feature_importances.json"
+    )
+
+    save_prediction_distribution(
+        preds,
+        "/app/output/prediction_distribution.png"
+    )
 
     logger.info("Prediction finished. Rows: %d", len(submission))
     return submission
