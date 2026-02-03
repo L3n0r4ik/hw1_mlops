@@ -1,64 +1,62 @@
 import os
-import sys
-import pandas as pd
-import time
+import requests
 import logging
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
-from datetime import datetime
-import subprocess
+import pandas as pd
 
-sys.path.append(os.path.abspath('./src'))
-from preprocessing import load_train_data, run_preproc
 from scorer import make_pred
 
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('/app/logs/service.log'),
-        logging.StreamHandler()
-    ]
+    format="%(asctime)s - %(levelname)s - %(message)s"
 )
+
 logger = logging.getLogger(__name__)
 
-class ProcessingService:
-    def __init__(self):
-        logger.info('Initializing ProcessingService...')
-        self.input_file = "/app/input/test.csv"
-        self.output_dir = "/app/output"
-        self.train = load_train_data()
-        logger.info('Service initialized')
+#TRAIN_URL = "https://www.dropbox.com/scl/fi/z8peeayz99ob41fldmbh0/train.csv?rlkey=zsufotcxkxwqclonczk1yb4vq&st=1iko17fq&dl=1"
+TEST_URL = "https://www.dropbox.com/scl/fi/mbuxvjd19jauuj1nrfukh/test.csv?rlkey=iw9v2oqj7mupk7nqpjr92wfic&st=xyuql6rx&dl=1"
 
-    def process_single_file(self, file_path):
-        try:
-            logger.info('Processing file: %s', file_path)
-            input_df = pd.read_csv(file_path).drop(columns=['name_1', 'name_2', 'street', 'post_code'])
+#TRAIN_PATH = "/app/train_data/train.csv"
+TEST_PATH = "/app/input/test.csv"
+OUTPUT_PATH = "/app/output/sample_submission.csv"
+MODEL_PATH = "/app/models/my_catboost.cbm"
 
-            logger.info('Starting preprocessing')
-            processed_df = run_preproc(self.train, input_df)
-            
-            logger.info('Making prediction')
-            submission = make_pred(processed_df, file_path)
-            
-            logger.info('Preparing submission file')
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_filename = f"predictions_{timestamp}.csv"
-            submission.to_csv(os.path.join(self.output_dir, output_filename), index=False)
-            logger.info('Predictions saved to: %s', output_filename)
+def download_file(url: str, path: str):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
 
-        except Exception as e:
-            logger.error('Error processing file %s: %s', file_path, e, exc_info=True)
-            return
+    logger.info("Downloading %s", path)
+    r = requests.get(url)
+    r.raise_for_status()
 
-if __name__ == "__main__":
-    logger.info('Starting ML scoring service...')
-    
-    import download_input
-    download_input.download_file_from_gdrive(
-        download_input.GDRIVE_FILE_ID, 
-        download_input.OUTPUT_PATH
+    with open(path, "wb") as f:
+        f.write(r.content)
+
+    logger.info("Saved to %s", path)
+
+
+def generate_submission(test_csv: str, output_csv: str):
+    logger.info("Generating submission using model")
+
+    submission = make_pred(
+        path_to_file=test_csv,
+        model_path=MODEL_PATH
     )
 
-    service = ProcessingService()
-    service.process_single_file(service.input_file)
+    os.makedirs(os.path.dirname(output_csv), exist_ok=True)
+    submission.to_csv(output_csv, index=False)
+
+    logger.info("Submission saved to %s", output_csv)
+
+
+def main():
+    logger.info("Starting service")
+
+    #download_file(TRAIN_URL, TRAIN_PATH)
+    download_file(TEST_URL, TEST_PATH)
+
+    generate_submission(TEST_PATH, OUTPUT_PATH)
+
+    logger.info("Service finished successfully")
+
+
+if __name__ == "__main__":
+    main()
