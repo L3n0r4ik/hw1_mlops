@@ -1,3 +1,10 @@
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+import warnings
+warnings.filterwarnings('ignore')
+
 def preprocess(df):
     df = df.copy()
     
@@ -9,11 +16,10 @@ def preprocess(df):
     
     categorical_features = ['merch', 'cat_id', 'gender', 'us_state', 'one_city']
     
-    if all(col in df.columns for col in ['lat', 'lon', 'merchant_lat', 'merchant_lon']):
-        df['distance'] = np.sqrt(
-            (df['lat'] - df['merchant_lat'])**2 + 
-            (df['lon'] - df['merchant_lon'])**2
-        )
+    df['distance'] = np.sqrt(
+        (df['lat'] - df['merchant_lat'])**2 + 
+        (df['lon'] - df['merchant_lon'])**2
+    )
     
 
     numeric_cols = df.select_dtypes(include=[np.number]).columns
